@@ -12,6 +12,9 @@ Post - Cria informação no Back
 Put / Patch - Alterar / Atualizar informação no Back
 Delete - Deleta informação no Back
 
+Middlewares são interceptadores que tem a opção de parar ou alterar algum dado, 
+ou seja, funções que executam processos intermédios.
+
 */
 
 const express = require("express")
@@ -24,6 +27,22 @@ app.use(express.json())
 
 
 const users = []
+
+const checkuser = (request, response, next) => {
+
+    const { id } = request.params
+
+    const index = users.findIndex(user => user.id === id)
+
+    if (index < 0){
+        return response.status(404).json({ error: "User not found" })
+    }
+
+    request.userIndex = index
+    request.userId = id
+
+    next()
+}
 
 app.get('/users', (request, response) => {
 
@@ -40,32 +59,20 @@ app.post('/users', (request, response) => {
     return response.json(user)
 })
 
-app.put('/users/:id', (request, response) => {
-
-    const { id } = request.params
+app.put('/users/:id', checkuser, (request, response) => {
+    
     const { name, age } = request.body
-
+    const id = request.userId
+    const index = request.userIndex
     const updateUser = { id, name, age }
-
-    const index = users.findIndex(user => user.id === id)
-
-    if (index < 0){
-        return response.status(404).json({ message: "User not found" })
-    }
 
     users[index] = updateUser
 
     return response.status(200).json(updateUser)
 })
 
-app.delete('/users/:id', (request, response) => {
-    const { id } = request.params
-
-    const index = users.findIndex(user => user.id === id)
-
-    if (index < 0){
-        return response.status(404).json({ message: "User not found" })
-    }
+app.delete('/users/:id', checkuser, (request, response) => {
+    const index = request.userIndex
 
     users.splice(index,1)
 
